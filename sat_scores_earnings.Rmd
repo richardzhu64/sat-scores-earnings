@@ -1,0 +1,52 @@
+---
+title: 'Chapter 12: Multivariate Regression'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(infer)
+library(skimr)
+library(broom)
+library(gganimate)
+library(tidyverse)
+library(gganimate)
+library(transformr)
+
+x <- read_rds("college.rds")
+```
+
+```{r}
+
+# First I formatted the data to match our desired Loess curve and transitions,
+# storing the new data in dat.
+
+dat <- x %>%
+  mutate(public = ifelse(public == 1, "Public", "Private")) %>%
+  crossing(center = c(800, 900, 1000, 1100, 1200, 1300, 1400, 1500)) %>%
+  mutate(dist = abs(sat - center)) %>%
+  filter(rank(dist) / n() <= .75) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+# ggplot and animation to get desired animation
+
+sat_animation <- ggplot(dat, aes(sat, earnings)) +
+  geom_point(aes(alpha = weight, group = center, color = public)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_smooth(aes(sat, earnings), data = x, color = "red", method = "loess") +
+  labs(title = "Relationship Between Student Earnings and SAT Scores",
+       subtitle = "Loess Curve Fit Animation",
+       x = "Average SAT Score",
+       y = "Median Student Earnings (Thousands)",
+       caption = "Data from Opportunity Insights"
+       ) +
+    transition_states(center)
+
+anim_save("sat_animation.gif", sat_animation)
+
+```
+
+
+
+
